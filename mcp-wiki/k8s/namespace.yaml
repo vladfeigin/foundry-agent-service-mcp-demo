@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mcp-wiki
+  labels:
+    name: mcp-wiki
+    app: mcp-wiki-server
+    environment: mvp

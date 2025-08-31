@@ -1,0 +1,12 @@
+[project]
+name = "mcp-wiki"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.13.1",
+    "requests>=2.32.5",
+    "starlette>=0.47.3",
+    "uvicorn[standard]>=0.35.0",
+]

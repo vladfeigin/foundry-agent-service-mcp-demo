@@ -1,0 +1,124 @@
+
+# check health of a server
+# important notes:
+# Keep the URL with the trailing slash: /mcp/.
+# Always send Accept: application/json, text/event-stream.
+
+curl -sS \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2025-06-18' \
+  --data '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"answerQ","arguments":{"question":"Ada Lovelace"}}}' \
+  http://localhost:4200/mcp/ | jq .
+
+
+#check the MCP server scripts
+
+curl -sS \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2025-06-18' \
+  --data '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"answerQ","arguments":{"question":"Tim Berners-Lee"}}}' \
+  http://localhost:4200/mcp/ | jq -r '.result.content[0].text'
+
+
+
+curl -sS \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2025-06-18' \
+  --data '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"answerQ","arguments":{"question":"Iran-Israel War"}}}' \
+  http://localhost:4200/mcp/ | jq -r '.result.content[0].text'
+
+
+
+  curl -sS \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -H 'MCP-Protocol-Version: 2025-06-18' \
+  --data '{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"answerQ","arguments":{"question":"Paetongtarn Shinawatra"}}}' \
+  http://localhost:4200/mcp/ | jq -r '.result.content[0].text'
+
+ask() {
+  jq -n --arg q "$*" \
+    '{jsonrpc:"2.0",id:5,method:"tools/call",params:{name:"answerQ",arguments:{question:$q}}}' |
+  curl -sS \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: application/json, text/event-stream' \
+    -H 'MCP-Protocol-Version: 2025-06-18' \
+    --data @- http://localhost:4200/mcp/ |
+  jq -r '.result.content[0].text'
+}
+# examples:
+ask "Ada Lovelace"
+ask "מה זה אלגוריתם?"
+
+
+#Containers
+#Build a docker container
+docker build -f server/Dockerfile -t mcp-wiki-server .
+#Run container
+docker run -p 4200:4200 mcp-wiki-server
+
+#Run MCP inspector
+npx @modelcontextprotocol/inspector
+URL:http://localhost:4200/mcp
+Transport Type: Streamable HTTP
+
+#Create resource in azure
+1. Resource Group
+
+az group create \
+  --name rg-mcp-wiki-demo \
+  --location swedencentral
+
+2. Create ACR
+az acr create \
+  --resource-group rg-mcp-wiki-demo \
+  --name mcpwikidemo \
+  --sku Basic \
+  --admin-enabled true
+
+3. Create AKS cluster
+az aks create \
+  --resource-group rg-mcp-wiki-demo \
+  --name aks-mcp-wiki \
+  --node-count 2 \
+  --node-vm-size Standard_B2s \
+  --generate-ssh-keys \
+  --attach-acr mcpwikidemo \
+  --enable-managed-identity \
+  --network-plugin azure \
+  --load-balancer-sku standard \
+  --enable-oidc-issuer \
+  --enable-workload-identity
+
+4. Login to ACR 
+az acr login --name mcpwikidemo
+
+5. Tag your local image
+docker tag mcp-wiki-server mcpwikidemo.azurecr.io/mcp-wiki-server:v1.0.0
+
+6.Push to ACR
+docker push mcpwikidemo.azurecr.io/mcp-wiki-server:v1.0.0
+
+7. Create k8s manifests 
+1. namespace apiVersion: v1
+kind: Namespace
+metadata:
+  name: mcp-wiki
+  labels:
+    name: mcp-wiki
+    app: mcp-wiki-server
+    environment: mvp
+
+
+
+Rebuild container and push to ACR, advance container version:
+az acr login --name mcpwikidemo
+
+docker buildx build \
+  --platform linux/amd64 \
+  -f server/Dockerfile \
+  -t mcpwikidemo.azurecr.io/mcp-wiki-server:v1.0.2 \
+  --push .

@@ -1,0 +1,33 @@
+MCP Server on AKS
+
+I’m aiming to implement the following scenario
+1.	MCP Server is running on AKS. It’s simple MCP server returning just a common knowledge text, based on the input topic. It uses wiki API
+2.	AI Agent running in Agent Service and connecting via SSE (server-side events) protocol to the MCP server to bring the context
+
+Details
+Implement MCP server. It has a single tool, “answerQ” , which receives a textual question and return, the answer. The MCP server behind the scenes calls, wiki API, so AKS cluster must have outbound traffic access to the internet.
+Implement MCP server as a container. 
+The container must support Linux as OS.
+Implement Kubernetes manifests for MCP server. DeploymentSet, Service=Loadbalancer since MCP must expose public IP.
+MCP must support, MSFT Entra authentication and RBACs. The AKS cluster will be configured to give access to the user identity
+Create small AKS cluster (1 nodepool)
+Deploy MCP server on it via DeploymentSet.
+Check the access to MCP server via SSE (health check) from the local machine 
+Create a MCP manifest (json) to connect to it from the VS Code, so I can ask trivia questions in VS Code GitHub copilot
+Create an AI Agent in Foundry Agent Service, which uses the MCP server as a “tool”: tools=mcp_tool.definitions,
+
+https://learn.microsoft.com/en-us/azure/ai-foundry/agents/how-to/tools/model-context-protocol-samples?pivots=python
+Run the Agent in the Agent Service playground.
+
+
+
+
+ 
+
+
+ 
+
+
+
+
+ 

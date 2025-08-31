@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-wiki-server
+  namespace: mcp-wiki
+  labels:
+    app: mcp-wiki-server
+    version: v1.0.0
+    environment: mvp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcp-wiki-server
+  template:
+    metadata:
+      labels:
+        app: mcp-wiki-server
+        version: v1.0.1
+    spec:
+      containers:
+      - name: mcp-wiki-server
+        image: mcpwikidemo.azurecr.io/mcp-wiki-server:v1.0.2
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 4200
+          name: http
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "4200"
+        - name: LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 4200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 4200
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          capabilities:
+            drop:
+            - ALL
+      restartPolicy: Always
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
