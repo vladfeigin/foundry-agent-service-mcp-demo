@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mcp-wiki-https
+  labels:
+    name: mcp-wiki-https
+    app: mcp-wiki-server-https
+    environment: mvp

@@ -122,3 +122,50 @@ docker buildx build \
   -f server/Dockerfile \
   -t mcpwikidemo.azurecr.io/mcp-wiki-server:v1.0.2 \
   --push .
+
+
+  #define MCP server in vscode (.vscode/mcp.json)
+  {
+  "servers": {
+    "wiki-aks": {
+      "type": "http",
+      "url": "http://20.240.73.0/mcp"
+    }
+  }
+}
+# start mcp server and ask questions from wikipedia topics/events (https://en.wikipedia.org/wiki/Portal:Current_events)
+
+Integration with Azure Agent Service: 
+Seems that Azure Foundry expects your MCP server to be reachable over HTTPS
+We need to put Ingress in front (Nginx Ingress Controller) and terminate TLS with cert. manager
+
+1. Install cert manager /w Created
+helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
+  --version v1.18.2 \
+  --namespace cert-manager \
+  --create-namespace \
+  --set crds.enabled=true
+
+2. check it was ibsralled properly
+kubectl get pods -n cert-manager
+kubectl get crd | grep cert-manager.io
+
+3. Enable Ingress Controller on the AKS cluster
+   We use  AKS Application Routing (managed NGINX(): https://learn.microsoft.com/en-us/azure/aks/app-routing?utm_source=chatgpt.com
+   Check if it's enabled:
+   kubectl get ingressclass
+
+
+
+
+
+
+
+Test https
+
+HOST="https://mcp-https.20-240-73-0.sslip.io/mcp/"
+curl -sS --no-buffer "$HOST" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: text/event-stream, application/json' \
+  -H 'MCP-Protocol-Version: 2025-06-18' \
+  --data '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'

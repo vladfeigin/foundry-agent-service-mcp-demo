@@ -1,0 +1,55 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcp-wiki-https
+  namespace: mcp-wiki-https
+  annotations:
+    # cert-manager (staging or prod issuer you created)
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    # sensible timeouts for long tool calls
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  tls:
+    - hosts:
+        - mcp-https.9-223-62-15.sslip.io
+      secretName: mcp-wiki-https-tls
+  rules:
+    - host: mcp-https.9-223-62-15.sslip.io
+      http:
+        paths:
+          # handle POSTs to the root RPC endpoint exactly
+          - path: /mcp
+            pathType: Exact
+            backend:
+              service:
+                name: mcp-wiki-service-https
+                port:
+                  number: 80
+          # and anything under /mcp/ (Prefix includes /mcp/foo)
+          - path: /mcp/
+            pathType: Prefix
+            backend:
+              service:
+                name: mcp-wiki-service-https
+                port:
+                  number: 80
+          # health
+          - path: /healthz
+            pathType: Exact
+            backend:
+              service:
+                name: mcp-wiki-service-https
+                port:
+                  number: 80
+          # (optional) only add this if you really want the root to hit your app
+          # - path: /
+          #   pathType: Exact
+          #   backend:
+          #     service:
+          #       name: mcp-wiki-service-https
+          #       port:
+          #         number: 80

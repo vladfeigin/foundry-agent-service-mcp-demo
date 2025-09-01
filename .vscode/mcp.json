@@ -3,6 +3,14 @@
     "wiki-aks": {
       "type": "http",
       "url": "http://20.240.73.0/mcp"
+    },
+    "wiki-aks-https": {
+      "type": "http",
+      "url": "https://mcp-https.9-223-62-15.sslip.io/mcp/",
+      "headers": {
+        "Accept": "application/json, text/event-stream",
+        "MCP-Protocol-Version": "2025-06-18"
+      }
     }
   }
 }
