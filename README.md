@@ -7,16 +7,15 @@ Minimal Model Context Protocol (MCP) server exposing a single `answerQ` tool tha
 - Single MCP tool: `answerQ`
 - Streamable HTTP endpoint (`/mcp/`) with JSON/SSE
 - Health endpoint: `/healthz`
-- Docker image
 - Kubernetes Deployment + Service + Ingress (TLS via Let’s Encrypt)
-- VS Code MCP client config
+- VS Code MCP client config and integration with GitHub Copilot
 - Agent Service AI Agent Integration with MCP server
 
 ## 2. Key Files
 
 - Server: [mcp-wiki/server/server.py](mcp-wiki/server/server.py)
 - Dockerfile: [mcp-wiki/server/Dockerfile](mcp-wiki/server/Dockerfile)
-- Agent script: [mcp-wiki/agent-service/agent_mcp_wiki.py](mcp-wiki/agent-service/agent_mcp_wiki.py)
+- Foundry Agent Service agent script: [mcp-wiki/agent-service/agent_mcp_wiki.py](mcp-wiki/agent-service/agent_mcp_wiki.py)
 - K8s manifests: [mcp-wiki/k8s/https](mcp-wiki/k8s/https)
 - VS Code MCP config: [.vscode/mcp.json](.vscode/mcp.json)
 - Env vars: [.env_template](.env_template)
@@ -31,6 +30,12 @@ Minimal Model Context Protocol (MCP) server exposing a single `answerQ` tool tha
 - An Azure subscription + ACR + AKS
 - (Optional) jq for JSON formatting
 
+Install uv:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 ## 4. Local Setup
 
 ```bash
@@ -40,13 +45,13 @@ uv sync
 uv run uvicorn server.server:starlette_app --host 0.0.0.0 --port 4200
 ```
 
-Health:
+MCP Sever health check:
 
 ```bash
 curl -s http://localhost:4200/healthz
 ```
 
-List tools (NOTE trailing slash /mcp/):
+List MCP Server tools (NOTE trailing slash /mcp/):
 
 ```bash
 curl -sS http://localhost:4200/mcp/ \
@@ -69,10 +74,9 @@ curl -sS http://localhost:4200/mcp/ \
 
 ## 5. Docker
 
-Build & run:
+Build and run locally Docker with MCP server:
 
 ```bash
-Run locally docker with MCP server
 docker build -f server/Dockerfile -t mcp-wiki-server .
 docker run -p 4200:4200 mcp-wiki-server
 ```
@@ -81,6 +85,7 @@ Now you have a MCP sever running locally in a Docker container.
 
 ### Connecting to local MCP Server
 
+Integrate the running locally, MCP server with GitHub Copilot.
 Add to .vscode/mcp.json:
 
 ```json
@@ -110,18 +115,29 @@ List Tools
 answerQ
 ```
 
-Great! Now we have a working local MCP server.
+Great! Now we have a working local MCP server integrated with GitHub copilot.
 
-## 6. Creating Azure Resources
+## 6. Provision Azure Resources
 
-Change the names, location and other parameters as needed. Here is just an example:
+The MCP server is running locally and integrated with GitHub Copilot. Next, provision the Azure infrastructure needed to deploy it remotely on AKS with HTTPS. You will create a resource group, an Azure Container Registry (ACR) for the image, and an AKS cluster that will host the MCP server.
+
+Change the names, Azure region and other parameters as needed.
+
+Create Resource Group
 
 ```bash
-crate Resource Group
 az group create -n rg-mcp-wiki-demo-ex -l swedencentral
-create Container Registry
+```
+
+Create Azure Container Registry (ACR):
+
+```bash
 az acr create -g rg-mcp-wiki-demo-ex -n mcpwikidemoex --sku Basic --admin-enabled true
-create AKS cluster
+```
+
+Create AKS cluster and get credentials:
+
+```bash
 az aks create \
   --resource-group rg-mcp-wiki-demo-ex \
   --name aks-mcp-wiki-ex \
@@ -138,10 +154,10 @@ az aks create \
 az aks get-credentials -g rg-mcp-wiki-demo-ex -n aks-mcp-wiki-ex
 ```
 
+Login to ACR, build multi-arch container for Linux and push to ACR:
+
 ```bash
-Login to ACR:
 az acr login -n mcpwikidemoex
-Build Multi-arch container for Linux push to ACR:
 docker buildx build \
   --platform linux/amd64 \
   -f server/Dockerfile \
@@ -149,11 +165,9 @@ docker buildx build \
   --push .
 ```
 
-Now we have a MCP server container for Linux pushed to ACR.
-
 ## 7. Deploy to AKS
 
-Azure Foundry expects your MCP server to be reachable over HTTPS only. So we need to install cert-manager CRDs for clusterissuer.cert-manager.io.
+Azure Foundry expects your MCP server to be reachable over HTTPS only. So we need to install cert-manager, which provides the CRDs for `clusterissuers.cert-manager.io`.
 
 ```bash
 helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
@@ -163,14 +177,14 @@ helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
   --set crds.enabled=true
 ```
 
-Check it was installed  properly
+Check it was installed  properly:
 
 ```bash
 kubectl get pods -n cert-manager
 kubectl get crd | grep cert-manager.io
 ```
 
-To receive HTTPS traffic, we need to install Ingress Controller. In this project we use Managed NGINX Ingress
+To receive HTTPS traffic, we need to install Ingress Controller. In this project we use Azure Managed NGINX Ingress
 [Nginx Ingress Controller](https://learn.microsoft.com/en-us/azure/aks/app-routing?utm_source=chatgpt.com#enable-application-routing-using-azure-cli "Nginx Ingress")
 
 Enable it on the existing cluster, run:
@@ -190,15 +204,16 @@ Before you running `kubectl apply` for the manifests make sure you've following 
      - name: mcp-wiki-server
        image: mcpwikidemoex.azurecr.io/mcp-wiki-server:v1.0.1   # <— your image
    ```
-2. Find the external IP of the Ingress Controller (the managed NGINX ingress controller runs in the `app-routing-system` namespace):
+2. Find the external IP of the Ingress Controller (Managed NGINX ingress controller runs in the `app-routing-system` namespace):
 
    ```bash
    kubectl get svc -n app-routing-system
    ```
-3. Update host name in [mcp-wiki/k8s/ingress.yaml](mcp-wiki/k8s/ingress.yaml):
-   Note: This example uses the wildcard DNS service sslip.io (https://sslip.io/), which maps <IP_ADDRESS>.sslip.io (and hostnames containing it) to the given IP. This is fine for demos; for production use a real domain and managed DNS.
+3. Update [mcp-wiki/k8s/ingress.yaml](mcp-wiki/k8s/ingress.yaml):
 
-   Convert the external IP to dash notation (replace dots with dashes):
+   Note: This example uses the *wildcard DNS* service **sslip.io** (https://sslip.io/), which maps <IP_ADDRESS>.sslip.io (and hostnames containing it) to the given IP. This is fine for demos; for production use a real domain and DNS.
+
+   Convert the external IP to sslip.io dash notation (replace dots with dashes):
    Example: 1.234.56.78 -> 1-234-56-78
 
    Pick an HTTPS host name (example prefix: mcp-https):
@@ -271,30 +286,28 @@ Edit [.vscode/mcp.json](.vscode/mcp.json):
 
 ## 10. Azure AI Agent Service
 
-Now, we'll create an AI Agent in Foundry Agent Service and configure its tools as a MCP server, which we just built before.
+The next step is to launch the agent in Azure AI Agent Service and set its tools to use the MCP server we just built on AKS cluster.
 
-Populate [.env](.env).
+Rename .env_template to .env and populate the following parameters:
 
-PROJECT_ENDPOINT="your AI Foundry project endpoint"
-
-MODEL_DEPLOYMENT_NAME="your LLM deployment name in AI Foundry project "
-
+PROJECT_ENDPOINT="https://`<your-project-endpoint>`"                     # e.g. https://myproj.eastus.models.ai.azure.com
+MODEL_DEPLOYMENT_NAME="`<your-model-deployment-name>`"         # e.g. gpt-4o-mini
 MCP_SERVER_URL="https://mcp-https.DASHED_EXTERNAL_IP.sslip.io/mcp/"
-
 MCP_SERVER_LABEL="wiki"
 
-Run:
+Launch the agent in Azure AI Agent Service:
 
 ```bash
 cd mcp-wiki/agent-service
 uv run agent_mcp_wiki.py
 ```
 
-Script uses:
+The agent code loads its required configuration values from the .env file (see .env_template for variable names).
 
-- Project endpoint + model
-- MCP server URL (must be HTTPS)
-- Attaches MCP tool and runs `answerQ`
+    - Project endpoint + model
+    - MCP server URL (must be HTTPS)
+
+and attaches MCP tool
   (See: [mcp-wiki/agent-service/agent_mcp_wiki.py](mcp-wiki/agent-service/agent_mcp_wiki.py))
 
 ## 11. Health & Debug
@@ -308,7 +321,7 @@ kubectl -n mcp-wiki-https port-forward svc/mcp-wiki-service-https 8080:80
 curl -sS http://127.0.0.1:8080/healthz
 ```
 
-## 13. Troubleshooting
+## 12. Troubleshooting
 
 | Issue         | Check                                                                          |
 | ------------- | ------------------------------------------------------------------------------ |
@@ -318,11 +331,14 @@ curl -sS http://127.0.0.1:8080/healthz
 | Pod CrashLoop | `kubectl logs` & image tag correctness                                       |
 | Tool fails    | Wikipedia rate limit or network egress                                         |
 
-## 14. Cleanup
+## 13. Cleanup
 
 ```bash
-az group delete -n rg-mcp-wiki-demo --yes --no-wait
+az group delete -n rg-mcp-wiki-demo-ex --yes --no-wait
 ```
 
-## 15. License
+## 14. License
+
 Licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for the full text.
+
+SPDX-License-Identifier: MIT
