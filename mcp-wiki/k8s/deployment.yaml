@@ -19,7 +19,7 @@ spec:
         runAsNonRoot: true
       containers:
       - name: mcp-wiki-server
-        image: mcpwikidemoex.azurecr.io/mcp-wiki-server:v1.0.1   # <— your image
+        image: __MCP_IMAGE_PLACEHOLDER__   # <— your image
         imagePullPolicy: Always
         ports:
         - containerPort: 4200

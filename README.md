@@ -32,7 +32,7 @@ In this project I'm continuing experimenting with AI-assisted development using 
 - Server: [mcp-wiki/server/server.py](mcp-wiki/server/server.py)
 - Dockerfile: [mcp-wiki/server/Dockerfile](mcp-wiki/server/Dockerfile)
 - Foundry Agent Service agent script: [mcp-wiki/agent-service/agent_mcp_wiki.py](mcp-wiki/agent-service/agent_mcp_wiki.py)
-- K8s manifests: [mcp-wiki/k8s/https](mcp-wiki/k8s/https)
+- K8s manifests (Kustomize base): [mcp-wiki/k8s](mcp-wiki/k8s)
 - VS Code MCP config: [.vscode/mcp.json](.vscode/mcp.json)
 - Env vars: [.env_template](.env_template)
 - spec.txt
@@ -182,98 +182,59 @@ docker buildx build \
   --push .
 ```
 
-## 7. Deploy to AKS
+## 7. Deploy to AKS (with Kustomize)
 
-Azure Foundry expects your MCP server to be reachable over HTTPS only. So we need to install cert-manager, which provides the CRDs for `clusterissuers.cert-manager.io`.
+We deploy using **Kustomize** so the container image and public hostname are injected without directly editing the raw manifests. Two placeholders are present in base YAML:
 
-```bash
-helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
-  --version v1.18.2 \
-  --namespace cert-manager \
-  --create-namespace \
-  --set crds.enabled=true
-```
+| Placeholder                   | Description                                                                   | Base File               |
+| ----------------------------- | ----------------------------------------------------------------------------- | ----------------------- |
+| `__MCP_IMAGE_PLACEHOLDER__` | Container image reference to be replaced by Kustomize `images:` transformer | `k8s/deployment.yaml` |
+| `__MCP_HOST_PLACEHOLDER__`  | Public HTTPS host (sslip.io form) replaced by JSON patch                     | `k8s/ingress.yaml`    |
 
-Check it was installed  properly:
+Copy the example kustomization file:
 
 ```bash
-kubectl get pods -n cert-manager
-kubectl get crd | grep cert-manager.io
+cp k8s/kustomization_example.yaml k8s/kustomization.yaml
 ```
 
-To receive HTTPS traffic, we need to install Ingress Controller. In this project we use Azure Managed NGINX Ingress
-[Nginx Ingress Controller](https://learn.microsoft.com/en-us/azure/aks/app-routing?utm_source=chatgpt.com#enable-application-routing-using-azure-cli "Nginx Ingress")
+Then edit `k8s/kustomization.yaml`:
 
-Enable it on the existing cluster, run:
-
-```bash
-az aks approuting enable --resource-group rg-mcp-wiki-demo-ex --name aks-mcp-wiki-ex
-```
-
-Before running `kubectl apply` make sure you’ve completed the following changes:
-
-1. Update the image name to the corect ACR image path.
-   In [mcp-wiki/k8s/deployment.yaml](mcp-wiki/k8s/deployment.yaml):
-
-   ```yaml
-   spec:
-     containers:
-     - name: mcp-wiki-server
-       image: mcpwikidemoex.azurecr.io/mcp-wiki-server:v1.0.1   # <— your image
-   ```
-2. Find the external IP of the Ingress Controller (managed NGINX ingress controller runs in the `app-routing-system` namespace):
-
+1. Replace `<YOUR_ACR_NAME>` with your ACR name.
+2. Get the external ingress IP (managed controller lives in `app-routing-system`):
    ```bash
    kubectl get svc -n app-routing-system
    ```
-3. Update [mcp-wiki/k8s/ingress.yaml](mcp-wiki/k8s/ingress.yaml):
 
-   Note: This example uses the *wildcard DNS* service **sslip.io** (https://sslip.io/), which maps <IP_ADDRESS>.sslip.io (and hostnames containing it) to the given IP. This is fine for demos; for production use a real domain and DNS.
+   Take the `EXTERNAL-IP` (e.g. `1.234.56.78`) and create a dashed form (`1-234-56-78`).
+3. Replace `<INGRESS_DASHED_EXTERNAL_IP>` with that dashed IP.
 
-   Convert the external IP to sslip.io dash notation (replace dots with dashes):
-   Example: 1.234.56.78 -> 1-234-56-78
-
-   Pick an HTTPS host name (example prefix: mcp-https):
-   mcp-https.1-234-56-78.sslip.io
-
-   Update your Ingress manifest (ingress.yaml) host and TLS entries accordingly:
-
-```
-       spec:
-        tls:
-        - hosts:
-          - mcp-https.<DASHED_EXTERNAL_IP>.sslip.io
-          secretName: mcp-wiki-tls
-        rules:
-        - host: mcp-https.<DASHED_EXTERNAL_IP>.sslip.io
-          http:
-```
-
-Replace `<DASHED_EXTERNAL_IP>` with the dash-formatted external IP (e.g., `1-234-56-78`).
-
-Apply namespace, issuers, deployment, service, ingress:
+After those edits, apply everything with a single command (no need to `kubectl apply -f` each file):
 
 ```bash
-kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/clusterissuer-prod.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
+kubectl apply -k k8s
 ```
 
-Check all services run as expected:
+Check resources:
 
 ```bash
 kubectl -n mcp-wiki-https get pods
 kubectl -n mcp-wiki-https get svc
 kubectl -n mcp-wiki-https get ingress
+kubectl get clusterissuer
 kubectl -n mcp-wiki-https get certificate
 ```
+
+If you prefer manual (non-Kustomize) application you may still edit `deployment.yaml` and `ingress.yaml` directly and run individual `kubectl apply -f` commands, but the Kustomize path is recommended.
+
+Note: This example uses the *wildcard DNS* service **sslip.io** (https://sslip.io/), which maps <IP_ADDRESS>.sslip.io (and hostnames containing it) to the given IP. This is fine for demos; for production use a real domain and DNS.
+When using wildcard DNS, convert the external IP to sslip.io dash notation (replace dots with dashes):
+Example: 1.234.56.78 -> 1-234-56-78
+Pick an HTTPS host name (example prefix: mcp-https): mcp-https.1-234-56-78.sslip.io
 
 ## 8. HTTPS Validation
 
 ```bash
-HOST="https://mcp-https.DASHED_EXTERNAL_IP.sslip.io"
+HOST="https://mcp-https.DASHED_EXTERNAL_IP.sslip.io"   # example: https://mcp-https.4-225-96-166.sslip.io
 curl -sS $HOST/healthz
 curl -sS $HOST/mcp/ \
   -H 'Content-Type: application/json' \
