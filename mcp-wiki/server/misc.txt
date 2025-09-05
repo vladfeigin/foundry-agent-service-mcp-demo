@@ -146,7 +146,7 @@ helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
   --create-namespace \
   --set crds.enabled=true
 
-2. check it was ibsralled properly
+2. check it was installed  properly
 kubectl get pods -n cert-manager
 kubectl get crd | grep cert-manager.io
 

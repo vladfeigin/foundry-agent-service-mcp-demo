@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mcp-wiki-service
-  namespace: mcp-wiki
+  name: mcp-wiki-service-https
+  namespace: mcp-wiki-https
   labels:
-    app: mcp-wiki-server
+    app: mcp-wiki-server-https
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
-    app: mcp-wiki-server
+    app: mcp-wiki-server-https
   ports:
-    - name: http
-      port: 80
-      targetPort: 4200
-      protocol: TCP
+  - name: http
+    port: 80
+    targetPort: 4200
+    protocol: TCP

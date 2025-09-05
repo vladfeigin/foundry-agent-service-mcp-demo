@@ -1,6 +1,6 @@
 MCP Server on AKS
 
-I’m aiming to implement the following scenario
+Implement the following scenario
 1.	MCP Server is running on AKS. It’s simple MCP server returning just a common knowledge text, based on the input topic. It uses wiki API
 2.	AI Agent running in Agent Service and connecting via SSE (server-side events) protocol to the MCP server to bring the context
 

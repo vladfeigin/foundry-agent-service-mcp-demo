@@ -1,3 +1,7 @@
 *.pyc
 __pycache__/
 .env
+mcp-wiki/impl-steps.txt
+misc.txt
+.vscode/mcp.json
+mcp-wiki/server/misc.txt

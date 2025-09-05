@@ -5,7 +5,7 @@ metadata:
   namespace: mcp-wiki-https
   annotations:
     # cert-manager (staging or prod issuer you created)
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+    cert-manager.io/cluster-issuer: letsencrypt-prod
     # sensible timeouts for long tool calls
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
@@ -15,10 +15,10 @@ spec:
   ingressClassName: webapprouting.kubernetes.azure.com
   tls:
     - hosts:
-        - mcp-https.9-223-62-15.sslip.io
+        - mcp-https.4-225-96-166.sslip.io
       secretName: mcp-wiki-https-tls
   rules:
-    - host: mcp-https.9-223-62-15.sslip.io
+    - host: mcp-https.4-225-96-166.sslip.io
       http:
         paths:
           # handle POSTs to the root RPC endpoint exactly

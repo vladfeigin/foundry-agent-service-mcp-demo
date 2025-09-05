@@ -17,34 +17,31 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        fsGroup: 1000
       containers:
       - name: mcp-wiki-server
-        image: mcpwikidemo.azurecr.io/mcp-wiki-server:v1.0.2
+        image: mcpwikidemoex.azurecr.io/mcp-wiki-server:v1.0.1   # <— your image
         imagePullPolicy: Always
         ports:
-        - name: http
-          containerPort: 4200
+        - containerPort: 4200
+          name: http
         env:
         - name: PORT
           value: "4200"
+        # If your code supports toggling JSON/SSE via env, keep SSE (default)
+        # - name: MCP_JSON_RESPONSE
+        #   value: "false"
         readinessProbe:
           httpGet:
-            # use the exact path your app returns 200 on: /healthz or /healthz/
             path: /healthz
             port: 4200
           initialDelaySeconds: 5
           periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
         livenessProbe:
           httpGet:
             path: /healthz
             port: 4200
           initialDelaySeconds: 30
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
         resources:
           requests:
             cpu: "100m"
@@ -55,11 +52,10 @@ spec:
         securityContext:
           runAsNonRoot: true
           runAsUser: 1000
-          runAsGroup: 1000
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false  # set true later if your app is RO
+          readOnlyRootFilesystem: false
           capabilities:
-            drop: ["ALL"]
-          seccompProfile:
-            type: RuntimeDefault
+            drop:
+            - ALL
       restartPolicy: Always
+    
