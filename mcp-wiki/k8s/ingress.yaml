@@ -15,10 +15,10 @@ spec:
   ingressClassName: webapprouting.kubernetes.azure.com
   tls:
     - hosts:
-        - mcp-https.4-225-96-166.sslip.io
+        - __MCP_HOST_PLACEHOLDER__
       secretName: mcp-wiki-https-tls
   rules:
-    - host: mcp-https.4-225-96-166.sslip.io
+    - host: __MCP_HOST_PLACEHOLDER__
       http:
         paths:
           # handle POSTs to the root RPC endpoint exactly
