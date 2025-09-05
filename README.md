@@ -12,7 +12,8 @@ It includes:
 ## AI-Assisted Development
 
 In this project I'm continuing experimenting with AI-assisted development using GitHub Copilot.
-**Key AI guidance artifacts**
+
+#### Key AI guidance artifacts
 
 - `spec.txt`: Source-of-truth for project scope, functional goals, deployment targets, and non‑functional requirements (e.g., HTTPS, Kubernetes deployment, MCP transport expectations). Conversational prompts were anchored to this spec so generated code stayed aligned.
 - `.github/instructions/` (e.g. `kubernetes-deployment-best-practices.instructions.md`): Domain best‑practice scaffolds consumed by GitHub Copilot to ensure manifests include probes, resource limits, non-root security context, TLS considerations, and structured rollout strategies.
