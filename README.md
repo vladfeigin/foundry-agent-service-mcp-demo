@@ -56,7 +56,35 @@ Install uv:
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-## 4. Local Setup
+## 4. Project details
+
+#### Architecture
+
+FastAPI/Starlette app serving a streamable HTTP MCP endpoint.  
+- Kubernetes Service + Ingress (NGINX via Application Routing)  
+- TLS certs issued by cert-manager (ACME / Let’s Encrypt)  
+- Stateless container; no DB; outbound HTTP to Wikipedia
+
+#### Endpoints
+
+- GET /healthz – readiness check  
+- POST /mcp/ – MCP JSON-RPC over HTTP (supports tools/list, tools/call)  
+- Tool exposed: answerQ(question: str) → short Wikipedia extract
+
+#### Tech Stack
+
+- Python, FastAPI/Starlette, Uvicorn  
+- Docker, Kustomize, AKS, cert-manager, Application Routing
+
+#### Directory Layout
+
+- server/ – FastAPI app, Dockerfile  
+- k8s/ – Kustomize base + patches for Ingress host/TLS  
+- agent-service/ – Azure AI Agent Service example using the HTTPS tool  
+- .vscode/ – MCP client config for Copilot / VS Code
+
+
+## 5. Local Setup
 
 ```bash
 git clone https://github.com/vladfeigin/foundry-agent-service-mcp-demo.git
@@ -92,7 +120,7 @@ curl -sS http://localhost:4200/mcp/ \
   | jq -r '.result.content[0].text'
 ```
 
-## 5. Docker
+## 6. Docker
 
 Build and run the Docker image (MCP server) locally:
 
@@ -137,7 +165,7 @@ answerQ
 
 Great! Now you have a working local MCP server integrated with GitHub Copilot.
 
-## 6. Provision Azure Resources
+## 7. Provision Azure Resources
 
 The MCP server is running locally and integrated with GitHub Copilot. Next, provision the Azure infrastructure needed to deploy it remotely on AKS with HTTPS. You will create a resource group, an Azure Container Registry (ACR) for the image, and an AKS cluster that will host the MCP server.
 
@@ -185,7 +213,7 @@ docker buildx build \
   --push .
 ```
 
-## 7. Deploy to AKS (with Kustomize)
+## 8. Deploy to AKS (with Kustomize)
 
 We deploy using **Kustomize** so the container image and public hostname are injected without directly editing the raw manifests. Two placeholders are present in base YAML:
 
@@ -235,7 +263,7 @@ When using wildcard DNS, convert the external IP to sslip.io dash notation (repl
 Example: 1.234.56.78 -> 1-234-56-78
 Pick an HTTPS host name (example prefix: mcp-https): mcp-https.1-234-56-78.sslip.io
 
-## 8. HTTPS Validation
+## 9. HTTPS Validation
 
 ```bash
 HOST="https://mcp-https.DASHED_EXTERNAL_IP.sslip.io"   # example: https://mcp-https.4-225-96-166.sslip.io
@@ -247,7 +275,7 @@ curl -sS $HOST/mcp/ \
   --data '{"jsonrpc":"2.0","id":10,"method":"tools/list"}'
 ```
 
-## 9. VS Code MCP Client
+## 10. VS Code MCP Client
 
 Edit [.vscode/mcp.json](.vscode/mcp.json):
 
@@ -266,7 +294,7 @@ Edit [.vscode/mcp.json](.vscode/mcp.json):
 }
 ```
 
-## 10. Azure AI Agent Service
+## 11. Azure AI Agent Service
 
 The next step is to launch the agent in Azure AI Agent Service and set its tools to use the MCP server we deployed on AKS.
 
@@ -292,7 +320,7 @@ The agent code loads its required configuration values from the .env file (see .
 and attaches the MCP tool
   (See: [mcp-wiki/agent-service/agent_mcp_wiki.py](mcp-wiki/agent-service/agent_mcp_wiki.py))
 
-## 11. Health & Debug
+## 12. Health & Debug
 
 ```bash
 # Pod logs
@@ -303,7 +331,7 @@ kubectl -n mcp-wiki-https port-forward svc/mcp-wiki-service-https 8080:80
 curl -sS http://127.0.0.1:8080/healthz
 ```
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 | Issue         | Check                                                                          |
 | ------------- | ------------------------------------------------------------------------------ |
@@ -313,13 +341,13 @@ curl -sS http://127.0.0.1:8080/healthz
 | Pod CrashLoop | `kubectl logs` & image tag correctness                                       |
 | Tool fails    | Wikipedia rate limit or network egress                                         |
 
-## 13. Cleanup
+## 14. Cleanup
 
 ```bash
 az group delete -n rg-mcp-wiki-demo-ex --yes --no-wait
 ```
 
-## 14. License
+## 15. License
 
 Licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for the full text.
 
