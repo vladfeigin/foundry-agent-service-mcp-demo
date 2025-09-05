@@ -1,6 +1,21 @@
 # MCP Wiki Server on AKS
 
-Minimal Model Context Protocol (MCP) server exposing a single `answerQ` tool that returns Wikipedia summaries. Runs locally, in Docker, and on Azure Kubernetes Service (AKS) with HTTPS + cert-manager. Integrates with VS Code MCP clients and Azure AI Agent Service.
+This project demonstrates end‑to‑end guidelines and implemenation for exposing a Model Context Protocol (MCP) server as a secure, scalable cloud service.
+It includes:
+
+* A lightweight Python MCP implementation providing a single tool (`answerQ`) that fetches Wikipedia summaries.
+* Local development workflow (uv + Uvicorn), containerization, and production deployment on Azure Kubernetes Service (AKS).
+* Automated TLS (Let’s Encrypt via cert-manager) with an NGINX ingress supplied by Azure’s managed Application Routing add-on.
+* Integration paths for both GitHub Copilot / VS Code (via `.vscode/mcp.json`) and Azure AI Agent Service (agent consuming an external MCP tool over HTTPS).
+* Primary goals: Exploring AI-Assisted development with GitHub Copilot, MCP learning, clarity, simplicity.
+
+## AI-Assisted Development
+
+In this project I'm continuing experimenting with AI-assisted development using GitHub Copilot.
+**Key AI guidance artifacts**
+
+- `spec.txt`: Source-of-truth for project scope, functional goals, deployment targets, and non‑functional requirements (e.g., HTTPS, Kubernetes deployment, MCP transport expectations). Conversational prompts were anchored to this spec so generated code stayed aligned.
+- `.github/instructions/` (e.g. `kubernetes-deployment-best-practices.instructions.md`): Domain best‑practice scaffolds consumed by GitHub Copilot to ensure manifests include probes, resource limits, non-root security context, TLS considerations, and structured rollout strategies.
 
 ## 1. Features
 
@@ -19,6 +34,7 @@ Minimal Model Context Protocol (MCP) server exposing a single `answerQ` tool tha
 - K8s manifests: [mcp-wiki/k8s/https](mcp-wiki/k8s/https)
 - VS Code MCP config: [.vscode/mcp.json](.vscode/mcp.json)
 - Env vars: [.env_template](.env_template)
+- spec.txt
 
 ## 3. Prerequisites
 
