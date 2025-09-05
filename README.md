@@ -325,5 +325,4 @@ az group delete -n rg-mcp-wiki-demo --yes --no-wait
 ```
 
 ## 15. License
-
-Internal demo.
+Licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for the full text.
