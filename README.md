@@ -1,6 +1,22 @@
 # MCP Wiki Server on AKS
 
-Minimal Model Context Protocol (MCP) server exposing a single `answerQ` tool that returns Wikipedia summaries. Runs locally, in Docker, and on Azure Kubernetes Service (AKS) with HTTPS + cert-manager. Integrates with VS Code MCP clients and Azure AI Agent Service.
+This project demonstrates end‑to‑end guidelines and implemenation for exposing a Model Context Protocol (MCP) server as a secure, scalable cloud service.
+It includes:
+
+* A lightweight Python MCP implementation providing a single tool (`answerQ`) that fetches Wikipedia summaries.
+* Local development workflow (uv + Uvicorn), containerization, and production deployment on Azure Kubernetes Service (AKS).
+* Automated TLS (Let’s Encrypt via cert-manager) with an NGINX ingress supplied by Azure’s managed Application Routing add-on.
+* Integration paths for both GitHub Copilot / VS Code (via `.vscode/mcp.json`) and Azure AI Agent Service (agent consuming an external MCP tool over HTTPS).
+* Primary goals: Exploring AI-Assisted development with GitHub Copilot, MCP learning, clarity, simplicity.
+
+## AI-Assisted Development
+
+In this project I'm continuing experimenting with AI-assisted development using GitHub Copilot.
+
+#### Key AI guidance artifacts
+
+- `spec.txt`: Source-of-truth for project scope, functional goals, deployment targets, and non‑functional requirements (e.g., HTTPS, Kubernetes deployment, MCP transport expectations). Conversational prompts were anchored to this spec so generated code stayed aligned.
+- `.github/instructions/` (e.g. `kubernetes-deployment-best-practices.instructions.md`): Domain best‑practice scaffolds consumed by GitHub Copilot to ensure manifests include probes, resource limits, non-root security context, TLS considerations, and structured rollout strategies.
 
 ## 1. Features
 
@@ -19,6 +35,7 @@ Minimal Model Context Protocol (MCP) server exposing a single `answerQ` tool tha
 - K8s manifests: [mcp-wiki/k8s/https](mcp-wiki/k8s/https)
 - VS Code MCP config: [.vscode/mcp.json](.vscode/mcp.json)
 - Env vars: [.env_template](.env_template)
+- spec.txt
 
 ## 3. Prerequisites
 
@@ -45,13 +62,13 @@ uv sync
 uv run uvicorn server.server:starlette_app --host 0.0.0.0 --port 4200
 ```
 
-MCP Sever health check:
+MCP Server health check:
 
 ```bash
 curl -s http://localhost:4200/healthz
 ```
 
-List MCP Server tools (NOTE trailing slash /mcp/):
+List MCP server tools (NOTE trailing slash /mcp/):
 
 ```bash
 curl -sS http://localhost:4200/mcp/ \
@@ -74,18 +91,18 @@ curl -sS http://localhost:4200/mcp/ \
 
 ## 5. Docker
 
-Build and run locally Docker with MCP server:
+Build and run the Docker image (MCP server) locally:
 
 ```bash
 docker build -f server/Dockerfile -t mcp-wiki-server .
 docker run -p 4200:4200 mcp-wiki-server
 ```
 
-Now you have a MCP sever running locally in a Docker container.
+Now you have an MCP server running locally in a Docker container.
 
 ### Connecting to local MCP Server
 
-Integrate the running locally, MCP server with GitHub Copilot.
+Integrate the locally running MCP server with GitHub Copilot.
 Add to .vscode/mcp.json:
 
 ```json
@@ -115,7 +132,7 @@ List Tools
 answerQ
 ```
 
-Great! Now we have a working local MCP server integrated with GitHub copilot.
+Great! Now you have a working local MCP server integrated with GitHub Copilot.
 
 ## 6. Provision Azure Resources
 
@@ -193,9 +210,9 @@ Enable it on the existing cluster, run:
 az aks approuting enable --resource-group rg-mcp-wiki-demo-ex --name aks-mcp-wiki-ex
 ```
 
-Before you running `kubectl apply` for the manifests make sure you've following changes:
+Before running `kubectl apply` make sure you’ve completed the following changes:
 
-1. Update image name to the corect ACR image path.
+1. Update the image name to the corect ACR image path.
    In [mcp-wiki/k8s/deployment.yaml](mcp-wiki/k8s/deployment.yaml):
 
    ```yaml
@@ -204,7 +221,7 @@ Before you running `kubectl apply` for the manifests make sure you've following 
      - name: mcp-wiki-server
        image: mcpwikidemoex.azurecr.io/mcp-wiki-server:v1.0.1   # <— your image
    ```
-2. Find the external IP of the Ingress Controller (Managed NGINX ingress controller runs in the `app-routing-system` namespace):
+2. Find the external IP of the Ingress Controller (managed NGINX ingress controller runs in the `app-routing-system` namespace):
 
    ```bash
    kubectl get svc -n app-routing-system
@@ -232,7 +249,7 @@ Before you running `kubectl apply` for the manifests make sure you've following 
           http:
 ```
 
-    Replace <DASHED_EXTERNAL_IP> with the dash-formatted external IP (e.g., 1-234-56-78).
+Replace `<DASHED_EXTERNAL_IP>` with the dash-formatted external IP (e.g., `1-234-56-78`).
 
 Apply namespace, issuers, deployment, service, ingress:
 
@@ -286,7 +303,7 @@ Edit [.vscode/mcp.json](.vscode/mcp.json):
 
 ## 10. Azure AI Agent Service
 
-The next step is to launch the agent in Azure AI Agent Service and set its tools to use the MCP server we just built on AKS cluster.
+The next step is to launch the agent in Azure AI Agent Service and set its tools to use the MCP server we deployed on AKS.
 
 Rename .env_template to .env and populate the following parameters:
 
@@ -307,7 +324,7 @@ The agent code loads its required configuration values from the .env file (see .
     - Project endpoint + model
     - MCP server URL (must be HTTPS)
 
-and attaches MCP tool
+and attaches the MCP tool
   (See: [mcp-wiki/agent-service/agent_mcp_wiki.py](mcp-wiki/agent-service/agent_mcp_wiki.py))
 
 ## 11. Health & Debug
