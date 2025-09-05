@@ -167,7 +167,7 @@ docker buildx build \
 
 ## 7. Deploy to AKS
 
-Azure Foundry expects your MCP server to be reachable over HTTPS only. So we need to install cert-manager, which provides the CRDs for `clusterissuers.cert-manager.io`.
+Azure Foundry expects your MCP server to be reachable over HTTPS only. So we need to install cert-manager, which provides the CRDs for `clusterissuers.cert-manager.io`. We’ll now deploy using **Kustomize** with placeholders so you don’t have to edit each manifest directly.
 
 ```bash
 helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \

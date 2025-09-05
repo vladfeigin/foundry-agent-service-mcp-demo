@@ -5,3 +5,4 @@ mcp-wiki/impl-steps.txt
 misc.txt
 .vscode/mcp.json
 mcp-wiki/server/misc.txt
+mcp-wiki/k8s/kustomization.yaml
