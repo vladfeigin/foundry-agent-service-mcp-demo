@@ -11,4 +11,4 @@ spec:
     solvers:
     - http01:
         ingress:
-          ingressClassName: webapprouting.kubernetes.azure.com
+          class: webapprouting.kubernetes.azure.com
