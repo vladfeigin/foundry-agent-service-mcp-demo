@@ -18,7 +18,8 @@ In this project I'm continuing experimenting with AI-assisted development using 
 - `spec.txt`: Source-of-truth for project scope, functional goals, deployment targets, and non‑functional requirements (e.g., HTTPS, Kubernetes deployment, MCP transport expectations). Conversational prompts were anchored to this spec so generated code stayed aligned.
 - `.github/instructions/` (e.g. `kubernetes-deployment-best-practices.instructions.md`): Domain best‑practice scaffolds consumed by GitHub Copilot to ensure manifests include probes, resource limits, non-root security context, TLS considerations, and structured rollout strategies.
 
-## Integration with Azure AI Agent Service 
+## Integration with Azure AI Agent Service
+
 One of the projects goals is to demonstrate integration with the Azure AI Agent Service, allowing the MCP server to be consumed as an external tool over HTTPS.
 
 ## 1. Features
@@ -60,29 +61,28 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 #### Architecture
 
-FastAPI/Starlette app serving a streamable HTTP MCP endpoint.  
-- Kubernetes Service + Ingress (NGINX via Application Routing)  
-- TLS certs issued by cert-manager (ACME / Let’s Encrypt)  
+FastAPI/Starlette app serving a streamable HTTP MCP endpoint.
+- Kubernetes Service + Ingress (NGINX via Application Routing)
+- TLS certs issued by cert-manager (ACME / Let’s Encrypt)
 - Stateless container; no DB; outbound HTTP to Wikipedia
 
 #### Endpoints
 
-- GET /healthz – readiness check  
-- POST /mcp/ – MCP JSON-RPC over HTTP (supports tools/list, tools/call)  
+- GET /healthz – readiness check
+- POST /mcp/ – MCP JSON-RPC over HTTP (supports tools/list, tools/call)
 - Tool exposed: answerQ(question: str) → short Wikipedia extract
 
 #### Tech Stack
 
-- Python, FastAPI/Starlette, Uvicorn  
+- Python, FastAPI/Starlette, Uvicorn
 - Docker, Kustomize, AKS, cert-manager, Application Routing
 
 #### Directory Layout
 
-- server/ – FastAPI app, Dockerfile  
-- k8s/ – Kustomize base + patches for Ingress host/TLS  
-- agent-service/ – Azure AI Agent Service example using the HTTPS tool  
+- server/ – FastAPI app, Dockerfile
+- k8s/ – Kustomize base + patches for Ingress host/TLS
+- agent-service/ – Azure AI Agent Service example using the HTTPS tool
 - .vscode/ – MCP client config for Copilot / VS Code
-
 
 ## 5. Local Setup
 
@@ -352,3 +352,7 @@ az group delete -n rg-mcp-wiki-demo-ex --yes --no-wait
 Licensed under the MIT License. See the [`LICENSE`](./LICENSE) file for the full text.
 
 SPDX-License-Identifier: MIT
+
+## Medium post
+
+[Bootstrapping MCP on Azure: Deploy to AKS and Integrate with Copilot &amp; Agents](https://medium.com/@vladif86/bootstrapping-mcp-on-azure-deploy-to-aks-and-integrate-with-copilot-agents-77af9caf73dc)
